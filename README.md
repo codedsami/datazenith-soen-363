@@ -1,1 +1,3 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/PRJ193Cf)
+The link to our data source:
+Mexico Crime: https://www.kaggle.com/datasets/elanderos/official-crime-stats-mexico-2015-2023?resource=download
+Chicago Crime: https://catalog.data.gov/dataset/crimes-2001-to-present
