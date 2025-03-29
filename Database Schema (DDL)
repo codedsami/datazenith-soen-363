@@ -4,33 +4,39 @@ CREATE DATABASE BooksDB;
 -- Connect to the newly created database
 \c BooksDB;
 
+-- Create the Database
+CREATE DATABASE BooksDB;
+
+-- Connect to the newly created database
+\c BooksDB;
+
 -- Authors Table (Many-to-Many Relationship)
 CREATE TABLE Authors (
-    author_id VARCHAR(20) PRIMARY KEY, -- OpenLibrary author_key
-    name VARCHAR(255) NOT NULL UNIQUE
+    author_id VARCHAR(100) PRIMARY KEY, -- OpenLibrary author_key or Archive Identifier
+    name VARCHAR(255) NOT NULL -- Author Name
 );
 
 -- Books Table (Main Entity)
 CREATE TABLE Books (
     book_id SERIAL PRIMARY KEY,
     title VARCHAR(500) NOT NULL,
-    first_publish_year INT CHECK (first_publish_year > 0),
+    first_publish_year INT CHECK (first_publish_year > 0), -- Ensure valid year
     downloads INT DEFAULT 0, -- Archive.org only
-    openlibrary_key VARCHAR(100) UNIQUE,
-    archive_identifier VARCHAR(100) UNIQUE
+    openlibrary_key VARCHAR(100) UNIQUE, -- OpenLibrary's unique identifier
+    archive_identifier VARCHAR(100) UNIQUE -- Archive.org's unique identifier
 );
 
 -- Book-Author Relationship (Many-to-Many)
 CREATE TABLE Book_Authors (
     book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
-    author_id VARCHAR(20) REFERENCES Authors(author_id) ON DELETE CASCADE,
+    author_id VARCHAR(100) REFERENCES Authors(author_id) ON DELETE CASCADE,
     PRIMARY KEY (book_id, author_id)
 );
 
 -- Subjects Table (Many-to-Many)
 CREATE TABLE Subjects (
     subject_id SERIAL PRIMARY KEY,
-    name VARCHAR(255) UNIQUE
+    name VARCHAR(255) NOT NULL UNIQUE
 );
 
 -- Book_Subjects Relationship (Many-to-Many)
@@ -43,7 +49,7 @@ CREATE TABLE Book_Subjects (
 -- Languages Table (Many-to-Many)
 CREATE TABLE Languages (
     language_id SERIAL PRIMARY KEY,
-    code VARCHAR(10) UNIQUE NOT NULL
+    code VARCHAR(10) NOT NULL UNIQUE -- ISO Language Code (e.g., 'en', 'pol')
 );
 
 -- Book_Languages Relationship (Many-to-Many)
@@ -53,9 +59,9 @@ CREATE TABLE Book_Languages (
     PRIMARY KEY (book_id, language_id)
 );
 
--- Editions Table
+-- Editions Table (To track editions by OpenLibrary's cover_edition_key)
 CREATE TABLE Editions (
     edition_id VARCHAR(100) PRIMARY KEY, -- OpenLibrary's cover_edition_key
     book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
-    edition_number INT CHECK (edition_number > 0) -- Based on edition_count
+    edition_number INT CHECK (edition_number > 0) -- Based on edition_count from OpenLibrary
 );
