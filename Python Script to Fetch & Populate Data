@@ -1,41 +1,69 @@
 import requests
-import psycopg2  
+import psycopg2
 
-# Database connection
-DB_CONFIG = {
-    "dbname": "your_database",
-    "user": "your_username",
-    "password": "your_password",
-    "host": "localhost",
-    "port": "5432"  
-}
+# Database connection info
+DB_NAME = "booksdb"
+DB_USER = "admin"
+DB_HOST = "localhost"
+DB_PORT = "5433"
 
+print("Connecting to the database...")
+
+# Connect to PostgreSQL database
+conn = psycopg2.connect(
+    dbname=DB_NAME,
+    user=DB_USER,
+    host=DB_HOST,
+    port=DB_PORT
+)
+cur = conn.cursor()
+print("Database connection established.")
+
+# Function to fetch data from API
 def get_data_from_api(url):
     """ Fetch JSON data from API """
     response = requests.get(url)
     if response.status_code == 200:
+        print(f"Data fetched from {url}: {response.json()}")  # Print the fetched data
         return response.json()
+    print(f"Failed to fetch data from {url}, Status Code: {response.status_code}")
     return None
 
 def insert_book(cursor, book, from_archive=False):
     """ Insert book from either API """
-    cursor.execute(
-        """INSERT INTO Books (title, first_publish_year, downloads, openlibrary_key, archive_identifier)
-           VALUES (%s, %s, %s, %s, %s) RETURNING book_id""",
-        (book.get("title"), book.get("first_publish_year"), book.get("downloads", 0),
-         book.get("openlibrary_key"), book.get("archive_identifier"))
-    )
-    return cursor.fetchone()[0]
+    try:
+        print(f"Inserting book: {book}")  # Check what data is being inserted
+        cursor.execute(
+            """INSERT INTO Books (title, first_publish_year, downloads, openlibrary_key, archive_identifier)
+               VALUES (%s, %s, %s, %s, %s) RETURNING book_id""",
+            (book.get("title"), book.get("first_publish_year"), book.get("downloads", 0),
+             book.get("openlibrary_key"), book.get("archive_identifier"))
+        )
+        return cursor.fetchone()[0]
+    except Exception as e:
+        print(f"Error inserting book {book.get('title')}: {e}")
+        conn.rollback()  # Rollback transaction if error occurs
+        return None
 
 def insert_author(cursor, author_id, name):
     """ Insert author if not exists """
-    cursor.execute("INSERT INTO Authors (author_id, name) VALUES (%s, %s) ON CONFLICT (author_id) DO NOTHING",
-                   (author_id, name))
+    try:
+        print(f"Inserting author: {name} with ID: {author_id}")  # Check which author is being inserted
+        cursor.execute("INSERT INTO Authors (author_id, name) VALUES (%s, %s) ON CONFLICT (author_id) DO NOTHING",
+                       (author_id, name))
+    except Exception as e:
+        print(f"Error inserting author {name}: {e}")
+        conn.rollback()  # Rollback transaction if error occurs
 
 def insert_book_author(cursor, book_id, author_id):
     """ Link book and author """
-    cursor.execute("INSERT INTO Book_Authors (book_id, author_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                   (book_id, author_id))
+    try:
+        print(f"Inserting book-author link: book_id={book_id}, author_id={author_id}")  # Check which link is being inserted
+        cursor.execute("INSERT INTO Book_Authors (book_id, author_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                       (book_id, author_id))
+    except Exception as e:
+        print(f"Error linking book and author: {e}")
+        conn.rollback()  # Rollback transaction if error occurs
 
 def process_openlibrary_data():
     """ Fetch and process OpenLibrary data """
@@ -45,20 +73,24 @@ def process_openlibrary_data():
         print("Failed to fetch OpenLibrary data")
         return
 
-    conn = psycopg2.connect(**DB_CONFIG)
-    cursor = conn.cursor()
-
     for book in data["docs"]:
-        book_id = insert_book(cursor, book)
+        if not book.get("title") or not book.get("first_publish_year"):
+            print(f"Skipping incomplete book: {book}")
+            continue
 
+        # Extract OpenLibrary key and prepare the book data
+        book["openlibrary_key"] = book.get("key")
+        
+        # Insert book into the database
+        book_id = insert_book(cur, book)
+
+        # Process authors
         if "author_key" in book and "author_name" in book:
             for i in range(len(book["author_key"])):
-                insert_author(cursor, book["author_key"][i], book["author_name"][i])
-                insert_book_author(cursor, book_id, book["author_key"][i])
+                insert_author(cur, book["author_key"][i], book["author_name"][i])
+                insert_book_author(cur, book_id, book["author_key"][i])
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+    conn.commit()  # Commit after processing all books from OpenLibrary
 
 def process_archive_data():
     """ Fetch and process Archive.org data """
@@ -68,22 +100,32 @@ def process_archive_data():
         print("Failed to fetch Archive.org data")
         return
 
-    conn = psycopg2.connect(**DB_CONFIG)
-    cursor = conn.cursor()
-
     for book in data["response"]["docs"]:
+        if not book.get("title") or not book.get("year"):
+            print(f"Skipping incomplete book from Archive.org: {book}")
+            continue
+
         book["first_publish_year"] = book.get("year")
         book["archive_identifier"] = book.get("identifier")
 
-        book_id = insert_book(cursor, book, from_archive=True)
+        # Insert book into the database
+        book_id = insert_book(cur, book, from_archive=True)
 
+        # Process creators (authors)
         if "creator" in book:
-            insert_author(cursor, book["archive_identifier"], book["creator"])
-            insert_book_author(cursor, book_id, book["archive_identifier"])
+            creators = book["creator"]
+            if isinstance(creators, str):  # If creator is a string, process as one
+                creators = [creators]
+            for creator in creators:
+                insert_author(cur, book["archive_identifier"], creator)
+                insert_book_author(cur, book_id, book["archive_identifier"])
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+    conn.commit()  # Commit after processing all books from Archive.org
 
+# Run data processing
 process_openlibrary_data()
 process_archive_data()
+
+# Close the connection
+cur.close()
+conn.close()
