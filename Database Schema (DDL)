@@ -1,0 +1,53 @@
+-- 1️⃣ Authors Table (Many-to-Many Relationship)
+CREATE TABLE Authors (
+    author_id VARCHAR(20) PRIMARY KEY, -- OpenLibrary author_key
+    name VARCHAR(255) NOT NULL UNIQUE
+);
+
+-- 2️⃣ Books Table (Main Entity)
+CREATE TABLE Books (
+    book_id SERIAL PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    first_publish_year INT CHECK (first_publish_year > 0),
+    downloads INT DEFAULT 0, -- Archive.org only
+    openlibrary_key VARCHAR(100) UNIQUE,
+    archive_identifier VARCHAR(100) UNIQUE
+);
+
+-- 3️⃣ Book-Author Relationship (Many-to-Many)
+CREATE TABLE Book_Authors (
+    book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
+    author_id VARCHAR(20) REFERENCES Authors(author_id) ON DELETE CASCADE,
+    PRIMARY KEY (book_id, author_id)
+);
+
+-- 4️⃣ Subjects (Many-to-Many)
+CREATE TABLE Subjects (
+    subject_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE
+);
+
+CREATE TABLE Book_Subjects (
+    book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
+    subject_id INT REFERENCES Subjects(subject_id) ON DELETE CASCADE,
+    PRIMARY KEY (book_id, subject_id)
+);
+
+-- 5️⃣ Languages (Many-to-Many)
+CREATE TABLE Languages (
+    language_id SERIAL PRIMARY KEY,
+    code VARCHAR(10) UNIQUE NOT NULL
+);
+
+CREATE TABLE Book_Languages (
+    book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
+    language_id INT REFERENCES Languages(language_id) ON DELETE CASCADE,
+    PRIMARY KEY (book_id, language_id)
+);
+
+-- 6️⃣ Editions Table
+CREATE TABLE Editions (
+    edition_id VARCHAR(100) PRIMARY KEY, -- OpenLibrary's cover_edition_key
+    book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
+    edition_number INT CHECK (edition_number > 0) -- Based on edition_count
+);
