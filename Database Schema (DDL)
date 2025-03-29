@@ -2,7 +2,7 @@
 CREATE DATABASE BooksDB;
 
 -- Connect to the newly created database
-\c BooksDB;
+\c booksdb;
 
 -- Create the Database
 CREATE DATABASE BooksDB;
