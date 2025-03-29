@@ -1,3 +1,8 @@
-The link to our data source:
-- Mexico Crime: https://www.kaggle.com/datasets/elanderos/official-crime-stats-mexico-2015-2023?resource=download/n
-- Chicago Crime: https://catalog.data.gov/dataset/crimes-2001-to-present
+1st API
+
+https://archive.org/advancedsearch.php?q=mediatype:texts&fl=identifier,title,creator,year,language,subject,downloads&rows=10000&page=1&output=json
+
+2nd API
+
+https://openlibrary.org/search.json?q=subject:Science+&limit=10000
+We're going to use Archive.org and openlibrary.org as our data sources
