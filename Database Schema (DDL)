@@ -1,10 +1,16 @@
--- 1️⃣ Authors Table (Many-to-Many Relationship)
+-- Create the Database
+CREATE DATABASE BooksDB;
+
+-- Connect to the newly created database
+\c BooksDB;
+
+-- Authors Table (Many-to-Many Relationship)
 CREATE TABLE Authors (
     author_id VARCHAR(20) PRIMARY KEY, -- OpenLibrary author_key
     name VARCHAR(255) NOT NULL UNIQUE
 );
 
--- 2️⃣ Books Table (Main Entity)
+-- Books Table (Main Entity)
 CREATE TABLE Books (
     book_id SERIAL PRIMARY KEY,
     title VARCHAR(500) NOT NULL,
@@ -14,38 +20,40 @@ CREATE TABLE Books (
     archive_identifier VARCHAR(100) UNIQUE
 );
 
--- 3️⃣ Book-Author Relationship (Many-to-Many)
+-- Book-Author Relationship (Many-to-Many)
 CREATE TABLE Book_Authors (
     book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
     author_id VARCHAR(20) REFERENCES Authors(author_id) ON DELETE CASCADE,
     PRIMARY KEY (book_id, author_id)
 );
 
--- 4️⃣ Subjects (Many-to-Many)
+-- Subjects Table (Many-to-Many)
 CREATE TABLE Subjects (
     subject_id SERIAL PRIMARY KEY,
     name VARCHAR(255) UNIQUE
 );
 
+-- Book_Subjects Relationship (Many-to-Many)
 CREATE TABLE Book_Subjects (
     book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
     subject_id INT REFERENCES Subjects(subject_id) ON DELETE CASCADE,
     PRIMARY KEY (book_id, subject_id)
 );
 
--- 5️⃣ Languages (Many-to-Many)
+-- Languages Table (Many-to-Many)
 CREATE TABLE Languages (
     language_id SERIAL PRIMARY KEY,
     code VARCHAR(10) UNIQUE NOT NULL
 );
 
+-- Book_Languages Relationship (Many-to-Many)
 CREATE TABLE Book_Languages (
     book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
     language_id INT REFERENCES Languages(language_id) ON DELETE CASCADE,
     PRIMARY KEY (book_id, language_id)
 );
 
--- 6️⃣ Editions Table
+-- Editions Table
 CREATE TABLE Editions (
     edition_id VARCHAR(100) PRIMARY KEY, -- OpenLibrary's cover_edition_key
     book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
