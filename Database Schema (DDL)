@@ -4,12 +4,6 @@ CREATE DATABASE BooksDB;
 -- Connect to the newly created database
 \c booksdb;
 
--- Create the Database
-CREATE DATABASE BooksDB;
-
--- Connect to the newly created database
-\c BooksDB;
-
 -- Authors Table (Many-to-Many Relationship)
 CREATE TABLE Authors (
     author_id VARCHAR(100) PRIMARY KEY, -- OpenLibrary author_key or Archive Identifier
