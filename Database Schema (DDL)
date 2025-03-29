@@ -27,35 +27,3 @@ CREATE TABLE Book_Authors (
     PRIMARY KEY (book_id, author_id)
 );
 
--- Subjects Table (Many-to-Many)
-CREATE TABLE Subjects (
-    subject_id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE
-);
-
--- Book_Subjects Relationship (Many-to-Many)
-CREATE TABLE Book_Subjects (
-    book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
-    subject_id INT REFERENCES Subjects(subject_id) ON DELETE CASCADE,
-    PRIMARY KEY (book_id, subject_id)
-);
-
--- Languages Table (Many-to-Many)
-CREATE TABLE Languages (
-    language_id SERIAL PRIMARY KEY,
-    code VARCHAR(10) NOT NULL UNIQUE -- ISO Language Code (e.g., 'en', 'pol')
-);
-
--- Book_Languages Relationship (Many-to-Many)
-CREATE TABLE Book_Languages (
-    book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
-    language_id INT REFERENCES Languages(language_id) ON DELETE CASCADE,
-    PRIMARY KEY (book_id, language_id)
-);
-
--- Editions Table (To track editions by OpenLibrary's cover_edition_key)
-CREATE TABLE Editions (
-    edition_id VARCHAR(100) PRIMARY KEY, -- OpenLibrary's cover_edition_key
-    book_id INT REFERENCES Books(book_id) ON DELETE CASCADE,
-    edition_number INT CHECK (edition_number > 0) -- Based on edition_count from OpenLibrary
-);
