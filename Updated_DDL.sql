@@ -22,7 +22,7 @@ CREATE TABLE Book_Edition (
     book_id INT REFERENCES Book(book_id) ON DELETE CASCADE,
     edition_number INT CHECK (edition_number > 0),  -- Requirement: Domains & Types
     edition_year INT CHECK (edition_year > 0),
-    language TEXT CHECK (LENGTH(language) <= 10)
+    language TEXT
 );
 
 -- Table: Book_Author (Many-to-Many Relationship)
@@ -39,9 +39,9 @@ CREATE TABLE Archive_Document (
     title TEXT NOT NULL,
     creator TEXT,
     year INT CHECK (year > 0),
-    language TEXT CHECK (LENGTH(language) <= 10),
+    language TEXT,
     downloads INT CHECK (downloads >= 0),
-    subject TEXT[]
+    subject TEXT
 );
 
 -- Requirement: Weak Entity => Archive_Stats (Stats dependent on Archive_Document)

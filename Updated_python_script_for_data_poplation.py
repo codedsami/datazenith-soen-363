@@ -4,9 +4,9 @@ import json
 
 # Database connection parameters
 DB_HOST = 'localhost'  # Change to your database host
-DB_NAME = 'your_database_name' 
-DB_USER = 'your_database_user' 
-DB_PASSWORD = 'your_database_password' 
+DB_NAME = 'Project_phase_1' 
+DB_USER = 'miskatsami' 
+DB_PASSWORD = 'sami2001' 
 
 # API URLs
 ARCHIVE_API_URL = "https://archive.org/advancedsearch.php?q=mediatype:texts&fl=identifier,title,creator,year,language,subject,downloads&rows=10000&page=1&output=json"
@@ -41,41 +41,63 @@ def connect_to_db():
 # Function to insert data into the Archive_Document table
 def insert_archive_data(conn, archive_data):
     cursor = conn.cursor()
-    insert_query = """
-    INSERT INTO Archive_Document (identifier, title, creator, year, language, subject, downloads)
-    VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """
-    for doc in archive_data:
-        identifier = doc.get('identifier', '')
-        title = doc.get('title', '')
-        creator = doc.get('creator', [''])[0]
-        year = doc.get('year', 0)
-        language = doc.get('language', [''])[0]
-        subject = doc.get('subject', [])
-        downloads = doc.get('downloads', 0)
+    
+    for data in archive_data:
+        identifier = data.get('identifier')
+        title = data.get('title')
+        creator = data.get('creator')
+        year = data.get('year')
+        language = data.get('language')
+        downloads = data.get('downloads')
+        subjects = data.get('subject', "")
 
-        cursor.execute(insert_query, (identifier, title, creator, year, language, subject, downloads))
-
+        # Ensure 'subject' is a string, if it's a list, join it into a single string
+        if isinstance(subjects, list):  
+            subjects = ', '.join(subjects)
+        
+        # Prepare the SQL query
+        insert_query = """
+            INSERT INTO Archive_Document (identifier, title, creator, year, language, subject, downloads)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (identifier) DO NOTHING
+        """
+        
+        # Execute the query
+        cursor.execute(insert_query, (identifier, title, creator, year, language, subjects, downloads))
+    
     conn.commit()
     cursor.close()
+
+
+
+
+
 
 # Function to insert data into the Book table (OpenLibrary)
 def insert_openlibrary_data(conn, openlibrary_data):
     cursor = conn.cursor()
-    insert_query = """
-    INSERT INTO Book (title, first_publish_year, cover_edition_key, has_fulltext)
-    VALUES (%s, %s, %s, %s)
-    """
+    
     for book in openlibrary_data:
-        title = book.get('title', '')
-        first_publish_year = book.get('first_publish_year', 0)
-        cover_edition_key = book.get('cover_edition_key', '')
+        title = book.get('title')
+        first_publish_year = book.get('first_publish_year')
+        cover_edition_key = book.get('cover_edition_key')
         has_fulltext = book.get('has_fulltext', False)
-
+        
+        # Skip insertion if cover_edition_key is empty or None
+        if not cover_edition_key:
+            continue
+        
+        insert_query = """
+        INSERT INTO Book (title, first_publish_year, cover_edition_key, has_fulltext)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (cover_edition_key) DO NOTHING
+        """  # Ignore duplicates
+        
         cursor.execute(insert_query, (title, first_publish_year, cover_edition_key, has_fulltext))
-
+    
     conn.commit()
     cursor.close()
+
 
 # Function to insert data into the Author table (OpenLibrary)
 def insert_author_data(conn, openlibrary_data):
@@ -99,16 +121,51 @@ def insert_book_author_data(conn, openlibrary_data):
     INSERT INTO Book_Author (book_id, author_id)
     VALUES (%s, %s)
     """
+    
     for book in openlibrary_data:
-        book_id = book.get('key', '').split('/')[-1]  # Extract the book ID from the OpenLibrary key
+        cover_edition_key = book.get('cover_edition_key')
+        
+        # Check if the book already exists using cover_edition_key
+        cursor.execute("SELECT book_id FROM Book WHERE cover_edition_key = %s", (cover_edition_key,))
+        existing_book = cursor.fetchone()
+
+        if existing_book is None:
+            # Insert into Book table if the book doesn't exist
+            cursor.execute("""
+            INSERT INTO Book (title, first_publish_year, cover_edition_key, has_fulltext)
+            VALUES (%s, %s, %s, %s)
+            RETURNING book_id
+            """, (book.get('title'), book.get('first_publish_year'), cover_edition_key, book.get('has_fulltext', False)))
+            book_id = cursor.fetchone()[0]  # Get the generated book_id
+        else:
+            # If the book already exists, use the existing book_id
+            book_id = existing_book[0]
+        
+        # Now insert into Book_Author (linking book_id with author_id)
         authors = book.get('author_key', [])
         for author_key in authors:
-            cursor.execute("SELECT id FROM Author WHERE author_key = %s", (author_key,))
-            author_id = cursor.fetchone()[0]
-            cursor.execute(insert_query, (book_id, author_id))
+            cursor.execute("SELECT author_id FROM Author WHERE author_name = %s", (author_key,))
+            author_id_result = cursor.fetchone()
+
+            if author_id_result is None:
+                # Insert new author and get the author_id
+                cursor.execute("INSERT INTO Author (author_name) VALUES (%s) RETURNING author_id", (author_key,))
+                author_id = cursor.fetchone()[0]
+            else:
+                # Use existing author_id
+                author_id = author_id_result[0]
+            
+            # Check if the combination of book_id and author_id already exists in Book_Author
+            cursor.execute("SELECT 1 FROM Book_Author WHERE book_id = %s AND author_id = %s", (book_id, author_id))
+            if cursor.fetchone() is None:  # If combination does not exist, insert it
+                cursor.execute(insert_query, (book_id, author_id))
 
     conn.commit()
     cursor.close()
+
+
+
+
 
 # Main function to populate the database
 def main():
