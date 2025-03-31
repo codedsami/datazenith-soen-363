@@ -7,6 +7,8 @@ CREATE TABLE Author (
     author_name TEXT NOT NULL
 );
 
+CREATE INDEX idx_author_name ON Author(author_name);
+
 -- Table: Book (General Entity)
 CREATE TABLE Book (
     book_id SERIAL PRIMARY KEY,
@@ -15,6 +17,8 @@ CREATE TABLE Book (
     cover_edition_key TEXT UNIQUE,
     has_fulltext BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+CREATE INDEX idx_book_first_publish_year ON Book(first_publish_year);
 
 -- Requirement 2
 -- At least one IS-A relationship.
@@ -28,12 +32,20 @@ CREATE TABLE Book_Edition (
     language TEXT
 );
 
+CREATE INDEX idx_book_edition_book_id ON Book_Edition(book_id);
+CREATE INDEX idx_book_edition_edition_number ON Book_Edition(edition_number);
+CREATE INDEX idx_book_edition_edition_year ON Book_Edition(edition_year);
+
+
 -- Table: Book_Author (Many-to-Many Relationship)
 CREATE TABLE Book_Author (
     book_id INT REFERENCES Book(book_id) ON DELETE CASCADE,
     author_id INT REFERENCES Author(author_id) ON DELETE CASCADE,
     PRIMARY KEY (book_id, author_id)
 );
+
+CREATE INDEX idx_book_author_book_id ON Book_Author(book_id);
+CREATE INDEX idx_book_author_author_id ON Book_Author(author_id);
 
 -- Table: Archive_Document (External data from Archive.org)
 CREATE TABLE Archive_Document (
@@ -47,6 +59,9 @@ CREATE TABLE Archive_Document (
     subject TEXT
 );
 
+CREATE INDEX idx_archive_document_year ON Archive_Document(year);
+CREATE INDEX idx_archive_document_language ON Archive_Document(language);
+
 -- Requirement 3
 -- At least one example of a weak entity.
 --
@@ -58,6 +73,7 @@ CREATE TABLE Archive_Stats (
     daily_downloads INT CHECK (daily_downloads >= 0)
 );
 
+CREATE INDEX idx_archive_stats_doc_id ON Archive_Stats(doc_id);
 
 -- Requirement 1
 -- How you provide the link between the two data sources. Note that the data that you are collecting may not necessarily use same keys / identifiers.
@@ -68,6 +84,9 @@ CREATE TABLE Book_Archive_Link (
     book_id INT REFERENCES Book(book_id) ON DELETE CASCADE,
     doc_id INT REFERENCES Archive_Document(doc_id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_book_archive_link_book_id ON Book_Archive_Link(book_id);
+CREATE INDEX idx_book_archive_link_doc_id ON Book_Archive_Link(doc_id);
 
 -- Requirement 5
 -- An implementation of an aggregation concept
