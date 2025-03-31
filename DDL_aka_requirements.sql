@@ -16,7 +16,10 @@ CREATE TABLE Book (
     has_fulltext BOOLEAN NOT NULL DEFAULT FALSE
 );
 
--- Requirement: IS-A Relationship: Book_Edition is a subtype of Book (Inheritance)
+-- Requirement 2
+-- At least one IS-A relationship.
+--
+-- Book_Edition is a subtype of Book (Inheritance)
 CREATE TABLE Book_Edition (
     edition_id SERIAL PRIMARY KEY,
     book_id INT REFERENCES Book(book_id) ON DELETE CASCADE,
@@ -44,7 +47,10 @@ CREATE TABLE Archive_Document (
     subject TEXT
 );
 
--- Requirement: Weak Entity => Archive_Stats (Stats dependent on Archive_Document)
+-- Requirement 3
+-- At least one example of a weak entity.
+--
+-- Weak Entity => Archive_Stats (Stats dependent on Archive_Document)
 CREATE TABLE Archive_Stats (
     stat_id SERIAL PRIMARY KEY,
     doc_id INT REFERENCES Archive_Document(doc_id) ON DELETE CASCADE,
@@ -52,28 +58,43 @@ CREATE TABLE Archive_Stats (
     daily_downloads INT CHECK (daily_downloads >= 0)
 );
 
--- Linking Books to Archives (Complex Key Matching)
--- Requirement: This table is used to link the two data sourse
+
+-- Requirement 1
+-- How you provide the link between the two data sources. Note that the data that you are collecting may not necessarily use same keys / identifiers.
+--
+-- Linking Books to Archives
 CREATE TABLE Book_Archive_Link (
     link_id SERIAL PRIMARY KEY,
     book_id INT REFERENCES Book(book_id) ON DELETE CASCADE,
     doc_id INT REFERENCES Archive_Document(doc_id) ON DELETE CASCADE
 );
 
--- Requirement: Aggregation => Summarizing Archive Downloads per Year
+-- Requirement 5
+-- An implementation of an aggregation concept
+--
+-- Aggregation => Summarizing Archive Downloads per Year
 CREATE VIEW Archive_Download_Summary AS
 SELECT year, COUNT(*) AS num_docs, SUM(downloads) AS total_downloads
 FROM Archive_Document
 GROUP BY year
 ORDER BY year;
 
--- Requirement: Hard-coded View => Restricting Access Based on Role
+
+-- Requirement 6
+-- Examples of a hard-coded views that filters some rows and columns, based on the user
+-- access rights (i.e. a full access user may see all columns while a low-key user may only see certain columns and for a subset of data.
+--
+-- Hard-coded View => Restricting Access Based on Role
 CREATE VIEW Restricted_Books AS
 SELECT book_id, title, first_publish_year
 FROM Book
 WHERE first_publish_year >= 2000; -- Limits to books published after 2000
 
--- Requirement: Referential Integrity => Prevent deleting a book if linked to an archive
+
+-- Requirement 4
+-- An example of a complex referential integrity (i.e. using assertions or triggers).
+--
+-- Referential Integrity => Prevent deleting a book if linked to an archive
 CREATE OR REPLACE FUNCTION prevent_book_deletion()
 RETURNS TRIGGER AS $$
 BEGIN

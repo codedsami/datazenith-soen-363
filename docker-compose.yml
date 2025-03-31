@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: soen-363-p01
+    environment:
+      POSTGRES_USER: soen
+      POSTGRES_PASSWORD: 363
+      POSTGRES_DB: soen-363-p01-db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
