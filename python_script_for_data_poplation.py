@@ -27,7 +27,11 @@ OPENLIBRARY_API_URL = "https://openlibrary.org/search.json?q=subject:Science+&li
 # ============================
 def get_db_connection():
     """Create and return a new database connection using pg8000."""
-    return pg8000.connect(**DB_CONFIG)
+    return pg8000.connect(
+        **DB_CONFIG,
+        timeout=120
+    )
+
 
 
 def insert_data(table, data, columns):
