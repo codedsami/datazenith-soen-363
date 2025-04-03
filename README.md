@@ -1,3 +1,13 @@
+# DataZenith
+
+### Mohamed Saidi - 40248103
+### Miskat Mahmud - 40250110
+### Beaudelaire Tsoungui Nzodoumkouo - 40216598
+### Abdel-Rahman Khalifa - 40253332
+
+
+
+
 # DataBase
 run this code in the terminal to run the script
 
