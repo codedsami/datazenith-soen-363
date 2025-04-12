@@ -17,9 +17,11 @@ DB_CONFIG = {
 ARCHIVE_API_URL = (
     "https://archive.org/advancedsearch.php?"
     "q=mediatype:texts&fl=identifier,title,creator,year,"
-    "language,subject,downloads&rows=10000&page=1&output=json"
+    "language,subject,downloads&rows=30000&page=1&output=json"
 )
-OPENLIBRARY_API_URL = "https://openlibrary.org/search.json?q=subject:Science+&limit=10000"
+
+# Base OpenLibrary API URL
+OPENLIBRARY_API_URL = "https://openlibrary.org/search.json?q=subject:{subject}&limit=30000"
 
 
 # ============================
@@ -112,18 +114,31 @@ def query_data(sql, params=None):
 # ============================
 # API Fetching Functions
 # ============================
-def get_archive_data():
-    """Fetch and return document list from Archive.org."""
-    response = requests.get(ARCHIVE_API_URL)
-    data = response.json()
-    return data['response']['docs']
+def get_archive_data(subject):
+    """
+    Fetch and return document list from Archive.org for a specific subject.
+    """
+    url = ARCHIVE_API_URL + f"&q=subject:{subject}"
+    try:
+        response = requests.get(url, timeout=3000)  
+        response.raise_for_status()
+        data = response.json()  
+        return data['response']['docs'] 
+    except requests.exceptions.RequestException as err:
+        print(f"Error fetching data from Archive.org for subject {subject}: {err}")
+        return []
 
 
-def get_openlibrary_data():
-    """Fetch and return document list from OpenLibrary."""
-    response = requests.get(OPENLIBRARY_API_URL)
-    data = response.json()
-    return data['docs']
+def get_openlibrary_data(subject):
+    url = OPENLIBRARY_API_URL.format(subject=subject)
+    try:
+        response = requests.get(url, timeout=3000) 
+        response.raise_for_status() 
+        data = response.json()  
+        return data['docs'] 
+    except requests.exceptions.RequestException as err:
+        print(f"Error fetching data from OpenLibrary for subject {subject}: {err}")
+        return []
 
 
 # ============================
@@ -251,58 +266,103 @@ def populate_book_edition(openlibrary_docs):
 
 
 def populate_book_archive_link():
-    """
-    Populate Book_Archive_Link by linking Books to Archive_Documents using a title match.
-    Uses a case-insensitive search for book titles within archive document titles.
-    """
+    """Populate Book_Archive_Link by linking Books to Archive_Documents using a title match."""
     conn = get_db_connection()
     cursor = conn.cursor()
+
     cursor.execute("SELECT book_id, title FROM Book")
     books = cursor.fetchall()
+
+    cursor.execute("SELECT doc_id, title FROM Archive_Document")
+    archive_docs = cursor.fetchall()
+
+    archive_doc_titles = {doc_title.lower(): doc_id for doc_id, doc_title in archive_docs}
+
+    links_to_insert = []
+
     for book_id, book_title in books:
-        cursor.execute(
-            "SELECT doc_id, title FROM Archive_Document WHERE title ILIKE %s",
-            ('%' + book_title + '%',)
-        )
-        docs = cursor.fetchall()
-        for doc_id, archive_title in docs:
+        matching_docs = [
+            doc_id for doc_title, doc_id in archive_doc_titles.items() if book_title.lower() in doc_title.lower()
+        ]
+
+        for doc_id in matching_docs:
             cursor.execute("SELECT 1 FROM Book_Archive_Link WHERE book_id = %s AND doc_id = %s", (book_id, doc_id))
             if not cursor.fetchone():
-                cursor.execute("INSERT INTO Book_Archive_Link (book_id, doc_id) VALUES (%s, %s)", (book_id, doc_id))
+                links_to_insert.append((book_id, doc_id))
+
+    if links_to_insert:
+        cursor.executemany("INSERT INTO Book_Archive_Link (book_id, doc_id) VALUES (%s, %s)", links_to_insert)
+
     conn.commit()
     cursor.close()
     conn.close()
 
 
+
 # ============================
 # Main Function
 # ============================
+import concurrent.futures
+
+def fetch_and_populate(subject):
+    """Fetch and populate data for a given subject."""
+    print(f"Fetching data for subject: {subject}...")
+
+    try:
+        print(f"Fetching Archive.org data for subject: {subject}...")
+        archive_docs = get_archive_data(subject)
+
+        print(f"Fetching OpenLibrary data for subject: {subject}...")
+        openlibrary_docs = get_openlibrary_data(subject)
+
+        print(f"Populating Archive data for subject: {subject}...")
+        populate_archive_data(archive_docs)
+
+        print(f"Populating OpenLibrary data for subject: {subject}...")
+        populate_openlibrary_data(openlibrary_docs)
+
+        print(f"Populating Book Editions for subject: {subject}...")
+        populate_book_edition(openlibrary_docs)
+
+        print(f"Linking Books to Archive Documents for subject: {subject}...")
+        populate_book_archive_link()
+
+        print(f"Data populated successfully for subject: {subject}!\n")
+    
+    except Exception as e:
+        print(f"Error occurred for subject {subject}: {e}")
+
+
 def main():
     print("Starting database population...")
 
-    # Run the DDL file to create/recreate tables and views.
     run_sql_file("DDL_aka_requirements.sql")
 
-    print("Fetching data from Archive.org...")
-    archive_docs = get_archive_data()
+    subjects = [
+        "general science",
+        "literature",
+        "world history",
+        "technology",
+        "art",
+        "mathematics",
+        "philosophy",
+        "engineering",
+        "biology",
+        "music",
+        "economics",
+        "psychology",
+        "sociology",
+        "health",
+        "environmental science",
+        "political science"
+    ]
 
-    print("Fetching data from OpenLibrary...")
-    openlibrary_docs = get_openlibrary_data()
+    for subject in subjects:
+        fetch_and_populate(subject)
 
-    print("Populating Archive data...")
-    populate_archive_data(archive_docs)
-
-    print("Populating OpenLibrary data...")
-    populate_openlibrary_data(openlibrary_docs)
-
-    print("Populating Book Editions from fetched data...")
-    populate_book_edition(openlibrary_docs)
-
-    print("Linking Books to Archive Documents...")
-    populate_book_archive_link()
-
-    print("Data populated successfully!")
+    print("Database population completed successfully for all subjects!")
 
 
+    
 if __name__ == "__main__":
     main()
