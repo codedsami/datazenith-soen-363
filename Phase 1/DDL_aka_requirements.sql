@@ -19,7 +19,7 @@ CREATE TABLE Book (
 );
 
 CREATE INDEX idx_book_first_publish_year ON Book(first_publish_year);
-
+CREATE INDEX idx_book_title ON Book(title);
 -- Requirement 2
 -- At least one IS-A relationship.
 --
@@ -61,6 +61,7 @@ CREATE TABLE Archive_Document (
 
 CREATE INDEX idx_archive_document_year ON Archive_Document(year);
 CREATE INDEX idx_archive_document_language ON Archive_Document(language);
+CREATE INDEX idx_archive_title ON Archive_Document(title);
 
 -- Requirement 3
 -- At least one example of a weak entity.
