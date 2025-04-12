@@ -1,0 +1,123 @@
+Overview
+
+This document outlines the key design changes made during the migration of the relational database (PostgreSQL) from 
+Phase I into the graph-based NoSQL database (Neo4j) for Phase II. The changes reflect optimizations appropriate for the graph 
+model and are in accordance with the flexibility allowed in the Phase II specification.
+
+1. IS-A Relationship Simplification
+
+    Original (Phase I):
+
+        Book_Edition was modeled as a subtype of Book (IS-A relationship), connected via foreign key book_id.
+
+    Updated (Phase II):
+
+        Book_Edition is now a separate node type in the graph.
+
+        It is connected to Book nodes via a HAS_EDITION relationship.
+
+    Reason:
+
+        Graph databases do not natively support class hierarchies.
+
+        Using a relationship for inheritance-style links simplifies traversal and querying.
+
+
+2. Join Tables Converted to Relationships
+
+    Original (Phase I):
+
+        Book_Author and Book_Archive_Link were many-to-many join tables.
+
+    Updated (Phase II):
+
+        These are now represented directly as graph relationships:
+
+            (:Book)-[:WRITTEN_BY]->(:Author)
+
+            (:Book)-[:HAS_ARCHIVE]->(:Archive_Document)
+
+    Reason:
+
+        Neo4j supports native many-to-many relationships.
+
+        Eliminating join nodes reduces complexity and improves query performance.
+
+
+3. Weak Entity Simplification (Archive_Stats)
+
+    Original (Phase I):
+
+        Archive_Stats was modeled as a weak entity with a foreign key to Archive_Document.
+
+    Updated (Phase II):
+
+        Kept as a separate node, linked via HAS_STATS:
+
+            (:Archive_Document)-[:HAS_STATS]->(:Archive_Stats)
+
+    Reason for Separate Node:
+
+        Preserves temporal/statistical data as a separate entity for extensibility.
+
+        Allows future extensions like tracking multiple stats per document.
+
+
+4. Views and Aggregation Adjustments
+
+    Original (Phase I):
+
+        SQL views like Archive_Download_Summary and Restricted_Books implemented via SELECT queries with filters and aggregations.
+
+    Updated (Phase II):
+
+        These are to be replicated in Cypher queries instead of static views.
+
+        Example: MATCH (d:Archive_Document) RETURN d.year, count(*) AS num_docs, sum(d.downloads) AS total_downloads
+
+    Reason:
+
+        Neo4j does not support views but supports powerful query logic using Cypher.
+
+
+5. Referential Integrity Handling
+
+    Original (Phase I):
+
+        Referential integrity enforced via constraints and a deletion trigger on Book.
+
+    Updated (Phase II):
+
+        Referential integrity is handled at the application level.
+
+        Relationships like HAS_ARCHIVE ensure logical linkage, but deletion rules must be implemented in the Python migration or future API logic.
+
+
+Final Graph Model (Summary)
+Nodes
+
+    Book
+
+    Author
+
+    BookEdition
+
+    ArchiveDocument
+
+    ArchiveStats
+
+Relationships
+
+    (:Book)-[:WRITTEN_BY]->(:Author)
+
+    (:Book)-[:HAS_EDITION]->(:BookEdition)
+
+    (:Book)-[:HAS_ARCHIVE]->(:ArchiveDocument)
+
+    (:ArchiveDocument)-[:HAS_STATS]->(:ArchiveStats)
+
+
+Conclusion
+
+These design changes optimize the relational model for Neo4j's graph structure, enabling more intuitive querying and efficient traversal. 
+All original data and relationships have been preserved, either structurally or semantically, and migration has been fully implemented via Python scripts.
