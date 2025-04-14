@@ -3,11 +3,11 @@ from neo4j import GraphDatabase
 
 # === CONFIGURATION ===
 POSTGRES_CONFIG = {
-    "host": "localhost",
-    "port": "5432",
-    "dbname": "phase1",
-    "user": "miskatsami",
-    "password": "sami2001"
+    'user': 'soen',
+    'password': '363',
+    'host': 'localhost',
+    'port': 5432,
+    'database': 'soen-363-p01-db'
 }
 
 NEO4J_URI = "bolt://localhost:7687"
