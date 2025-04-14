@@ -104,7 +104,6 @@ Nodes
 
     ArchiveDocument
 
-    ArchiveStats
 
 Relationships
 
@@ -112,9 +111,8 @@ Relationships
 
     (:Book)-[:HAS_EDITION]->(:BookEdition)
 
-    (:Book)-[:HAS_ARCHIVE]->(:ArchiveDocument)
+    (:Book)-[:LINKED_TO]->(:ArchiveDocument)
 
-    (:ArchiveDocument)-[:HAS_STATS]->(:ArchiveStats)
 
 
 Conclusion
