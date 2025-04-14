@@ -33,5 +33,4 @@ python3 python_script_for_data_poplation.py
 We're going to use Archive.org and openlibrary.org as our data sources
 
 ---------------------------------------------------------------------
-# Here is the link to our dump file that will allow you to download the DB after phase 1
-https://drive.google.com/file/d/13UIT7632q6YmIrtrM6MXEerOMjaqZpQR/view?usp=sharing
+**Please find the links to dump files for Phase 1 (Postgres) and Phase 2 (Neo4j) in the "Resources & Access" section of the final report.**
