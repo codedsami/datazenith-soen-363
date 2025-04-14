@@ -53,7 +53,7 @@ RETURN b.title;
 // === STEP 1: Full-Text Search BEFORE Index Creation (Expect Failure or Slow Performance) ===
 PROFILE
 MATCH (d:ArchiveDocument)
-WHERE d.title CONTAINS "history" OR d.subject CONTAINS "history"
+WHERE d.title CONTAINS "history of ancient civilizations" OR d.subject CONTAINS "history"
 RETURN d.title AS title, d.subject AS subject
 ORDER BY d.title
 LIMIT 10;
